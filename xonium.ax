@@ -1,0 +1,56 @@
+let driver = require("./driver.ax")
+let element = require("./element.ax")
+
+let newsession = fn(serverurl, capabilities) {
+    return driver.createdriver(serverurl, capabilities)
+}
+
+let waitfor = fn(drv, by, value, timeout) {
+    if timeout == none {
+        timeout = 5
+    }
+    let start = time()
+    while true {
+        try {
+            let elem = drv.findelement(by, value)
+            return elem
+        } catch e {
+        // uwu
+        }
+        if time() - start > timeout {
+            throw("element not found within " + str(timeout) + " seconds")
+        }
+        sleep(0.5)
+    }
+}
+
+let waitforvisible = fn(drv, by, value, timeout) {
+    let elem = waitfor(drv, by, value, timeout)
+    let start = time()
+    if timeout == none {
+        timeout = 5
+    }
+    while true {
+        if elem.isdisplayed() {
+            return elem
+        }
+        if time() - start > timeout {
+            throw("element not visible within " + str(timeout) + " seconds")
+        }
+        sleep(0.5)
+    }
+}
+
+export = {
+    "newsession": newsession,
+    "waitfor": waitfor,
+    "waitforvisible": waitforvisible,
+    "id": "id",
+    "classname": "class name",
+    "cssselector": "css selector",
+    "xpath": "xpath",
+    "name": "name",
+    "tagname": "tag name",
+    "linktext": "link text",
+    "partiallinktext": "partial link text"
+}
